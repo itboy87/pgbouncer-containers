@@ -1,3 +1,28 @@
+# itboy87 PgBouncer images for CloudNativePG
+
+This public fork of `cloudnative-pg/pgbouncer-containers` builds **PgBouncer 1.26.1**
+from its official release source. It is independently built and maintained by
+`itboy87`; it is not an official CloudNativePG-published image.
+
+- Image: `ghcr.io/itboy87/pgbouncer:1.26.1` (linux/amd64 and linux/arm64).
+- Source SHA-256: `00886a2994b4844cd37110970df777772cfc42a74c400522c82fba509a3f42d9`.
+- Debian Trixie base is pinned by digest in `docker-bake.hcl`.
+- The build runs the upstream C HBA tests and the targeted second-startup,
+  startup-options and ignored-tracked-parameter regression tests as non-root.
+- Non-root CNPG layout, UID 998, GID 996, and `/usr/bin/pgbouncer` are preserved.
+- GitHub Actions publishes only when manually dispatched, emits SBOM/provenance,
+  verifies both architecture binaries, and signs the immutable index with Sigstore.
+- Prefer the verified immutable digest for deployment, rather than a mutable tag.
+- `1.26.1` tags are write-once: the workflow refuses to overwrite an existing release.
+  Publish a new version/rebuild tag for future base/dependency refreshes.
+
+See [BUILD.md](BUILD.md) and [the release](https://github.com/pgbouncer/pgbouncer/releases/tag/pgbouncer_1_26_1).
+
+Original upstream README follows. Its references to official images refer to
+CloudNativePG's registry, not the independently published package above.
+
+---
+
 [![CloudNativePG](./logo/cloudnativepg.png)](https://cloudnative-pg.io/)
 
 ---

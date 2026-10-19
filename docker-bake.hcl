@@ -17,12 +17,13 @@ variable "revision" {
 
 fullname = ( environment == "testing") ? "${registry}/pgbouncer-testing" : "${registry}/pgbouncer"
 now = timestamp()
-authors = "The CloudNativePG Contributors"
-url = "https://github.com/cloudnative-pg/pgbouncer-containers"
+authors = "itboy87; derived from The CloudNativePG Contributors"
+url = "https://github.com/itboy87/pgbouncer-containers"
 
 // PgBouncer version to install
 // renovate: suite=trixie-pgdg depName=pgbouncer
-pgBouncerVersion = "1.26.0-4.pgdg13+1"
+pgBouncerVersion = "1.26.1"
+pgBouncerSourceSha256 = "00886a2994b4844cd37110970df777772cfc42a74c400522c82fba509a3f42d9"
 
 // Debian base version
 // renovate: datasource=docker versioning=loose
@@ -42,6 +43,7 @@ target "default" {
   ]
   args = {
     PGBOUNCER_VERSION = "${pgBouncerVersion}"
+    PGBOUNCER_SHA256 = "${pgBouncerSourceSha256}"
     BASE = "${base}"
   }
   output = [
@@ -58,7 +60,7 @@ target "default" {
     "index,manifest:org.opencontainers.image.version=${pgBouncerVersion}",
     "index,manifest:org.opencontainers.image.revision=${revision}",
     "index,manifest:org.opencontainers.image.vendor=${authors}",
-    "index,manifest:org.opencontainers.image.title=CloudNativePG PgBouncer ${plainVersion(pgBouncerVersion)}",
+    "index,manifest:org.opencontainers.image.title=PgBouncer ${plainVersion(pgBouncerVersion)} for CloudNativePG (itboy87 build)",
     "index,manifest:org.opencontainers.image.description=A PgBouncer ${plainVersion(pgBouncerVersion)} container image",
     "index,manifest:org.opencontainers.image.documentation=${url}",
     "index,manifest:org.opencontainers.image.authors=${authors}",
@@ -73,7 +75,7 @@ target "default" {
     "org.opencontainers.image.version" = "${pgBouncerVersion}",
     "org.opencontainers.image.revision" = "${revision}",
     "org.opencontainers.image.vendor" = "${authors}",
-    "org.opencontainers.image.title" = "CloudNativePG PgBouncer ${plainVersion(pgBouncerVersion)}",
+    "org.opencontainers.image.title" = "PgBouncer ${plainVersion(pgBouncerVersion)} for CloudNativePG (itboy87 build)",
     "org.opencontainers.image.description" = "A PgBouncer ${plainVersion(pgBouncerVersion)} container image",
     "org.opencontainers.image.documentation" = "${url}",
     "org.opencontainers.image.authors" = "${authors}",

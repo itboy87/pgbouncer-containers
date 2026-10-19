@@ -1,21 +1,25 @@
-# Building PgBouncer Container Images for CloudNativePG
+# Building the independently maintained PgBouncer 1.26.1 image
 
-This guide explains how to build PgBouncer operand images for
-[CloudNativePG](https://cloudnative-pg.io) using
-[Docker Bake](https://docs.docker.com/build/bake/) together with a
-[GitHub Actions workflow](.github/workflows/bake.yml).
+The workflow is manual-only. In GitHub Actions, dispatch `build.yml` on the
+reviewed default branch. It builds amd64/arm64, runs upstream regressions and
+binary/UID checks, scans fixable high/critical vulnerabilities, and signs the digest.
+SBOM and maximum-mode build provenance are attached by Buildx.
 
-## Prerequisites
+The package must be explicitly public in GitHub package settings before deploying
+without pull credentials. Verify an anonymous manifest pull; repository visibility
+alone does not establish package visibility.
 
-Before you begin, ensure that you have met the following prerequisites and requirements:
+The workflow refuses to replace the `1.26.1` tag. For a reviewed dependency refresh,
+choose a new version/rebuild tag, preserving the prior deployment digest for rollback.
+Do not rerun a successful publication to move the release tag.
 
-- [Prerequisites](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#prerequisites)
-- [Verifying requirements](https://github.com/cloudnative-pg/postgres-containers/blob/main/BUILD.md#verifying-requirements)
+For an unpublished local build:
 
-## Building images
-
-To build a PgBouncer image, run:
-
-```bash
-docker buildx bake --push
+```sh
+environment=production registry=localhost:5000 revision=$(git rev-parse HEAD) docker buildx bake
 ```
+
+`docker-bake.hcl` pins the Debian base and official source archive checksum. No
+production credentials or private repository files are part of this build context.
+The output retains the upstream CloudNativePG non-root operand paths and identity.
+Licenses and attribution remain in `LICENSE` and the installed source `COPYRIGHT`.
