@@ -7,7 +7,7 @@ ARG PGBOUNCER_VERSION
 ARG PGBOUNCER_SHA256
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     build-essential pkg-config libevent-dev libssl-dev libc-ares-dev libpq-dev \
-    ca-certificates curl python3 python3-pytest python3-pytest-asyncio \
+    ca-certificates curl pandoc python3 python3-pytest python3-pytest-asyncio \
     python3-pytest-timeout python3-pytest-xdist python3-psycopg python3-filelock \
     postgresql postgresql-client openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
