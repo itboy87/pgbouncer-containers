@@ -2,6 +2,11 @@ name: Build and publish PgBouncer 1.26.1
 
 on:
   workflow_dispatch:
+    inputs:
+      source_run:
+        description: 'Optional original successful build-step run ID; resume verification without replacing its immutable image'
+        required: false
+        type: string
 
 permissions: {}
 concurrency:
@@ -15,6 +20,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: read
       id-token: write
     steps:
       - name: Checkout source
@@ -26,6 +32,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Refuse to overwrite a published release tag
+        if: inputs.source_run == ''
         shell: bash
         run: |
           if docker manifest inspect ghcr.io/${{ github.repository_owner }}/pgbouncer:1.26.1 >/dev/null 2>&1; then
@@ -39,6 +46,7 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Build, run upstream regression tests, and publish
+        if: inputs.source_run == ''
         id: build
         uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7
         env:
@@ -47,10 +55,26 @@ jobs:
           revision: ${{ github.sha }}
         with:
           push: true
+      - name: Resume verification of an immutable prior build
+        id: resume
+        if: inputs.source_run != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" > source-build-run.json
+          jq -e '.path == ".github/workflows/build.yml" and .head_branch == "main"' source-build-run.json
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/jobs" > source-build-jobs.json
+          jq -e 'any(.jobs[].steps[]; .name == "Build, run upstream regression tests, and publish" and .conclusion == "success")' source-build-jobs.json
+          gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" --name pgbouncer-1.26.1-build-evidence --dir source-build-evidence
+          echo "metadata=$(jq -c . source-build-evidence/build-metadata.json)" >> "$GITHUB_OUTPUT"
       - name: Verify both published binaries and non-root identity
         id: verify
         env:
-          BUILD_METADATA: ${{ steps.build.outputs.metadata }}
+          BUILD_METADATA: ${{ steps.build.outputs.metadata || steps.resume.outputs.metadata }}
         shell: bash
         run: |
           set -euo pipefail
@@ -58,11 +82,15 @@ jobs:
           digest=$(jq -r '.default."containerimage.digest"' build-metadata.json)
           test "${digest#sha256:}" != "$digest"
           image="ghcr.io/${{ github.repository_owner }}/pgbouncer@$digest"
+          docker buildx imagetools inspect "$image" --raw > image-index.json
           for architecture in amd64 arm64; do
-            docker pull --platform "linux/$architecture" "$image"
-            docker run --rm --platform "linux/$architecture" "$image" --version | tee "version-$architecture.txt"
+            platform_digest=$(jq -r --arg architecture "$architecture" '.manifests[] | select(.platform.os == "linux" and .platform.architecture == $architecture) | .digest' image-index.json)
+            [[ "$platform_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            platform_image="ghcr.io/${{ github.repository_owner }}/pgbouncer@$platform_digest"
+            docker pull --platform "linux/$architecture" "$platform_image"
+            docker run --rm --platform "linux/$architecture" "$platform_image" --version | tee "version-$architecture.txt"
             head -1 "version-$architecture.txt" | grep -Fx 'PgBouncer 1.26.1'
-            test "$(docker run --rm --platform "linux/$architecture" --entrypoint /usr/bin/id "$image" -u)" = 998
+            test "$(docker run --rm --platform "linux/$architecture" --entrypoint /usr/bin/id "$platform_image" -u)" = 998
           done
           echo "image=$image" >> "$GITHUB_OUTPUT"
           echo "image=$image" >> "$GITHUB_STEP_SUMMARY"
@@ -91,4 +119,6 @@ jobs:
           path: |
             build-metadata.json
             version-*.txt
+            source-build-*.json
+            image-index.json
           if-no-files-found: ignore

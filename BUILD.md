@@ -23,3 +23,8 @@ environment=production registry=localhost:5000 revision=$(git rev-parse HEAD) do
 production credentials or private repository files are part of this build context.
 The output retains the upstream CloudNativePG non-root operand paths and identity.
 Licenses and attribution remain in `LICENSE` and the installed source `COPYRIGHT`.
+
+If publication succeeded but a subsequent verification/scanning/signing step failed,
+dispatch the workflow with `source_run` set to the original run ID. It requires a
+successful original build/test step, downloads that run's immutable build metadata,
+and reruns checks/signing without rebuilding or moving any image tag.
