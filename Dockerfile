@@ -23,7 +23,7 @@ RUN test -n "$PGBOUNCER_VERSION" && test -n "$PGBOUNCER_SHA256" && \
 # Regression tests exercise the source-built executable against disposable local
 # PostgreSQL, without root privileges or any production credentials/data.
 USER buildtest
-RUN python3 -m pytest -q test/test_misc.py \
+RUN PATH="$(pg_config --bindir):$PATH" python3 -m pytest -q test/test_misc.py \
     -k 'second_startup_message_rejected or options_startup_param or ignore_tracked_startup_parameter'
 
 FROM ${BASE}
